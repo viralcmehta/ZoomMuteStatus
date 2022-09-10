@@ -1,0 +1,82 @@
+property btnTitle : "Mute audio"
+global isMuted, wasMuted, anyColor, msg, timer, debugOn
+set wasMuted to false
+set isMuted to false
+set timer to 0
+set msg to ""
+
+set debug to true
+
+
+on appIsRunning(appName)
+	tell application "System Events" to (name of processes) contains appName
+end appIsRunning
+
+on zoomIsRunning()
+	return appIsRunning("zoom.us")
+end zoomIsRunning
+
+on meetingIsRunning()
+	tell application "System Events" to tell application process "zoom.us"
+		set isMeeting to name of menu bar item 3 of menu bar 1
+	end tell
+	return isMeeting is "Meeting"
+end meetingIsRunning
+
+on isZoomMuted()
+	tell application "System Events" to tell application process "zoom.us"
+		set isMuted to exists (menu item "Unmute audio" of menu 1 of menu bar item "Meeting" of menu bar 1)
+	end tell
+	return isMuted
+end isZoomMuted
+
+on setAnyBar(dotColor)
+	tell application "AnyBar" to set image name to dotColor
+	tell application "AnyBar" to set current to get image name as Unicode text
+end setAnyBar
+
+on displayNotif(dispMsg, dispTitle, dispSub)
+	if isMuted is not wasMuted then
+		display notification dispMsg with title dispTitle subtitle dispSub
+	end if
+end displayNotif
+
+on idle
+	-- Check if zoom is running
+	set timer to 15
+	set anyColor to "hollow"
+	
+	if zoomIsRunning() then
+		set timer to 10
+		
+		if meetingIsRunning() then
+			set timer to 1
+			
+			if isZoomMuted() then
+				set anyColor to "muteicon" -- ZOOM is MUTED
+				set msg to "MUTED"
+			else
+				set anyColor to "unmuteicon" -- ZOOM is LIVE
+				set msg to "LIVE"
+			end if
+			
+		else
+			if debugOn then
+				displayNotif("No Meeting", "Zoom", "--------------")
+			end if
+		end if
+		
+	else
+		if debugOn then
+			displayNotif("No Zoom", "Zoom Mute Status", "----------------")
+		end if
+	end if
+	
+	setAnyBar(anyColor)
+	displayNotif(msg, "Zoom Mic", "---------------")
+	
+	set wasMuted to isMuted
+	
+	return timer
+	
+end idle
